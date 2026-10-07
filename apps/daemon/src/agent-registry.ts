@@ -119,7 +119,7 @@ export class AgentRegistry {
    * it cannot be resumed mid-turn. The agentId survives, which is what lets a
    * follow-up continue the same conversation.
    */
-  recoverFromRestart(): void {
+  async recoverFromRestart(): Promise<void> {
     for (const record of this.store.load()) {
       if (isTerminal(record.status)) continue;
       this.store.patch(record.jobId, {
@@ -127,6 +127,31 @@ export class AgentRegistry {
         error: "Interrupted when the daemon restarted. Send a follow-up to continue.",
       });
       log.warn(`Job ${record.jobId} was mid-flight at shutdown; marked interrupted`);
+      await this.releaseOrphanedRun(record);
+    }
+  }
+
+  /**
+   * The turn died with the old process, but nothing told the SDK's local store
+   * that: the agent is left pointing at a run still marked running, and every
+   * later follow-up is refused with "already has active run". Cancelling it
+   * here is what makes the follow-up we just promised actually possible.
+   */
+  private async releaseOrphanedRun(record: JobRecord): Promise<void> {
+    const cwd = this.projects.get(record.projectId)?.cwd;
+    if (!record.agentId || !cwd) return;
+
+    try {
+      const { items } = await Agent.listRuns(record.agentId, { runtime: "local", cwd });
+      for (const run of items) {
+        if (run.status !== "running" || !run.supports("cancel")) continue;
+        await run.cancel();
+        log.info(`Released orphaned run ${run.id} on agent ${record.agentId}`);
+      }
+    } catch (error) {
+      // A job that cannot be cleaned up is still better than a daemon that
+      // will not start, so this stays a warning.
+      log.warn(`Could not release the orphaned run for job ${record.jobId}`, error);
     }
   }
 

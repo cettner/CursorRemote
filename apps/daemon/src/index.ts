@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   const bus = new EventBus(config.transcriptBufferSize);
   const store = new JobStore(JOBS_PATH);
   const registry = new AgentRegistry(config, apiKey, bus, store);
-  registry.recoverFromRestart();
+  await registry.recoverFromRestart();
 
   const server = createServer(config, registry, bus);
   const address = resolveBindAddress(config.bind);
