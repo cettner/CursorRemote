@@ -47,7 +47,8 @@ conversations.
 
 - Node.js 22.13 or later
 - Rust (stable, MSVC on Windows) — only to build the desktop app
-- Tailscale on both machines
+- Tailscale installed and signed in to the **same account on both machines** — this is what
+  lets the laptop reach the work machine without opening a port or running a server
 - A Cursor account on a paid plan
 
 ## Setup
@@ -82,13 +83,26 @@ start it again. It prints the address and token to hand to the laptop:
   Token: ...
 ```
 
-To keep it running without a terminal open, register it as a scheduled task:
+To keep it running without a terminal open, register it as a scheduled task. It starts at
+logon, restarts if it falls over, and runs with no console window:
 
 ```powershell
-pwsh -File apps/daemon/scripts/install-service.ps1 -KeepAwake
+powershell -ExecutionPolicy Bypass -File apps\daemon\scripts\install-service.ps1 -KeepAwake
+Start-ScheduledTask -TaskName CursorRemoteDaemon
 ```
 
 `-KeepAwake` also stops the machine sleeping while plugged in, since tool calls run on it.
+Pass `-Remove` to unregister.
+
+A scheduled task rather than a Windows service on purpose: the agents need your user session,
+your PATH, your git credentials, and your Cursor login, none of which a LocalSystem service has.
+
+Since there is no console, output goes to `~/.cursorremote/logs/daemon.log`. That is also where
+to read the URL and token:
+
+```powershell
+Get-Content "$env:USERPROFILE\.cursorremote\logs\daemon.log" -Tail 10
+```
 
 ### 2. Laptop (watches them)
 
