@@ -83,7 +83,17 @@ export function loadConfig(): { config: DaemonConfig; created: boolean } {
     created = true;
   }
 
-  const raw: unknown = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
+  // Windows editors and PowerShell's -Encoding utf8 both prepend a BOM, which
+  // JSON.parse rejects with a famously unhelpful message.
+  const text = readFileSync(CONFIG_PATH, "utf8").replace(/^\uFEFF/, "");
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`${CONFIG_PATH} is not valid JSON: ${detail}`);
+  }
   const parsed = configSchema.safeParse(raw);
   if (!parsed.success) {
     const detail = parsed.error.issues

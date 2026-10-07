@@ -234,7 +234,16 @@ export class AgentRegistry {
     const project = this.projects.get(record.projectId);
     if (!project) throw new ProjectNotFoundError(record.projectId);
 
-    this.publish(this.store.patch(jobId, { prompt, result: undefined, error: undefined }));
+    // Move off the previous turn's terminal status in the same update, so no
+    // client ever sees "finished" while the next turn is already starting.
+    this.publish(
+      this.store.patch(jobId, {
+        prompt,
+        status: "queued",
+        result: undefined,
+        error: undefined,
+      }),
+    );
     this.bus.appendDelta(jobId, { kind: "user", text: prompt });
 
     try {
