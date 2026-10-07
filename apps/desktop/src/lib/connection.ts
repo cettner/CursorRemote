@@ -88,10 +88,27 @@ export class DaemonConnection {
   disconnect(): void {
     this.closedByUs = true;
     clearTimeout(this.reconnectTimer);
-    this.socket?.close(1000, "client closed");
+    this.detach(this.socket);
     this.socket = undefined;
     this.lastStatus.clear();
     this.update(EMPTY);
+  }
+
+  /**
+   * Closes a socket we are done with and silences its handlers first. Without
+   * this, the close event lands after a replacement socket already exists, and
+   * the stale handler schedules a reconnect we did not ask for, leaving two
+   * live sockets and every event delivered twice.
+   */
+  private detach(socket: WebSocket | undefined): void {
+    if (!socket) return;
+    socket.onopen = null;
+    socket.onmessage = null;
+    socket.onerror = null;
+    socket.onclose = null;
+    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+      socket.close(1000, "client closed");
+    }
   }
 
   private open(): void {
@@ -108,14 +125,18 @@ export class DaemonConnection {
     };
 
     socket.onmessage = (event) => {
+      if (this.socket !== socket) return;
       this.handle(event.data);
     };
 
     socket.onerror = () => {
+      if (this.socket !== socket) return;
       this.update({ ...this.snapshot, status: "error", error: "Could not reach the daemon." });
     };
 
     socket.onclose = (event) => {
+      // A socket we have already replaced must not drive state or reconnects.
+      if (this.socket !== socket) return;
       this.socket = undefined;
       if (this.closedByUs) return;
 

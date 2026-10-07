@@ -6,7 +6,7 @@ import { JobList, STATUS_LABELS } from "./components/JobList";
 import { QuestionBanner } from "./components/QuestionBanner";
 import { Transcript } from "./components/Transcript";
 import { DaemonConnection } from "./lib/connection";
-import { ensureWebNotificationPermission, initNotifications, isTauri, notify } from "./lib/notify";
+import { initNotifications, isTauri, notify } from "./lib/notify";
 
 const STORAGE_KEY = "cursorremote.credentials";
 
@@ -18,12 +18,23 @@ interface StoredCredentials {
 function readStored(): StoredCredentials {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { url: "", token: "" };
-    const parsed = JSON.parse(raw) as Partial<StoredCredentials>;
-    return { url: parsed.url ?? "", token: parsed.token ?? "" };
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<StoredCredentials>;
+      if (parsed.url && parsed.token) return { url: parsed.url, token: parsed.token };
+    }
   } catch {
-    return { url: "", token: "" };
+    // Fall through to the dev fallback, then to the connect screen.
   }
+
+  // Lets `npm run tauri:dev` come up already pointed at a local daemon instead
+  // of retyping the token on every reload. Never compiled into a release build.
+  if (import.meta.env.DEV) {
+    const url = import.meta.env.VITE_DAEMON_URL;
+    const token = import.meta.env.VITE_DAEMON_TOKEN;
+    if (url && token) return { url, token };
+  }
+
+  return { url: "", token: "" };
 }
 
 const connection = new DaemonConnection();
@@ -39,7 +50,6 @@ export function App() {
 
   useEffect(() => {
     void initNotifications();
-    void ensureWebNotificationPermission();
   }, []);
 
   // Reconnect on launch so the app is useful without touching anything.
