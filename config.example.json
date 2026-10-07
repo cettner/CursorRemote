@@ -1,0 +1,18 @@
+{
+  "hostName": "workstation",
+  "port": 4517,
+  "bind": "tailscale",
+  "token": "replace-me-with-32-random-bytes",
+  "defaultModel": "composer-2.5",
+  "questionTimeoutMs": 1800000,
+  "autoReview": false,
+  "settingSources": ["project", "user"],
+  "transcriptBufferSize": 2000,
+  "projects": [
+    {
+      "id": "myrepo",
+      "name": "My Repo",
+      "cwd": "D:/Projects/MyRepo"
+    }
+  ]
+}

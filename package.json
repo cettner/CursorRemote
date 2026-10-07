@@ -1,0 +1,23 @@
+{
+  "name": "cursor-remote",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monitor and direct Cursor agents running on another computer",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/daemon",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @cursorremote/protocol && npm run build --workspace @cursorremote/daemon",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "daemon": "npm run start --workspace @cursorremote/daemon",
+    "daemon:dev": "npm run dev --workspace @cursorremote/daemon",
+    "desktop": "npm run tauri:dev --workspace @cursorremote/desktop",
+    "desktop:build": "npm run tauri:build --workspace @cursorremote/desktop"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
