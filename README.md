@@ -150,6 +150,28 @@ agent to create and delete files.
 `probe.mjs` is an interactive terminal client. Reach for it first when the desktop app
 misbehaves, to find out which side is at fault.
 
+## When the laptop cannot reach the work machine
+
+Work from the outside in; each step rules out one layer.
+
+```powershell
+tailscale status                      # both machines signed in to the same tailnet?
+tailscale ping <work-machine>         # is there a route at all?
+curl http://<tailnet-ip>:4517/health  # is the daemon listening and reachable?
+```
+
+`/health` is unauthenticated and returns `{"ok":true,...}`, so a reply means the only thing
+left to get wrong is the token. A hang instead means the work machine's firewall is blocking
+the port, or the daemon bound to loopback because it could not find a tailnet address — its
+log says which address it chose.
+
+If the daemon is running as a scheduled task, its log is the only place its output goes:
+
+```powershell
+Get-Content "$env:USERPROFILE\.cursorremote\logs\daemon.log" -Tail 20
+Get-ScheduledTask -TaskName CursorRemoteDaemon   # State should be Running
+```
+
 ## Secrets
 
 Nothing secret belongs in this repo. The Cursor credential lives in `~/.cursor/sdk/auth.json`
