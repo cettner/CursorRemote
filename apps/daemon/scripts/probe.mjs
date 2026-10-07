@@ -62,11 +62,21 @@ const state = {
 const socket = new WebSocket(`${url}?token=${encodeURIComponent(token)}`);
 const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: "> " });
 
+// Anything typed before the handshake finishes waits here rather than throwing.
+// Typing that fast is hard, but piping input is not, and over a relayed tailnet
+// link the first line regularly beats the connection.
+const outbox = [];
+
 function send(message) {
-  socket.send(JSON.stringify({ requestId: randomUUID(), ...message }));
+  const payload = JSON.stringify({ requestId: randomUUID(), ...message });
+  if (socket.readyState === WebSocket.OPEN) socket.send(payload);
+  else outbox.push(payload);
 }
 
-socket.on("open", () => console.log(dim(`connected to ${url}`)));
+socket.on("open", () => {
+  console.log(dim(`connected to ${url}`));
+  while (outbox.length) socket.send(outbox.shift());
+});
 
 socket.on("close", (code, reason) => {
   console.log(red(`\ndisconnected (${code}) ${reason}`));
