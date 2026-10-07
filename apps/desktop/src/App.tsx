@@ -6,7 +6,7 @@ import { JobList, STATUS_LABELS } from "./components/JobList";
 import { QuestionBanner } from "./components/QuestionBanner";
 import { Transcript } from "./components/Transcript";
 import { DaemonConnection } from "./lib/connection";
-import { initNotifications, isTauri, notify } from "./lib/notify";
+import { initNotifications, isTauri, notify, notifyQuestion } from "./lib/notify";
 
 const STORAGE_KEY = "cursorremote.credentials";
 
@@ -63,7 +63,7 @@ export function App() {
     () =>
       connection.onAlert((alert) => {
         if (alert.kind === "question") {
-          notify(`${alert.projectName} needs you`, alert.question.question);
+          notifyQuestion(`${alert.projectName} needs you`, alert.question.question);
           setSelectedId(alert.question.jobId);
           setComposingNew(false);
         } else if (alert.kind === "finished") {

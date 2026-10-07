@@ -100,6 +100,9 @@ npm run desktop:build    # installer in apps/desktop/src-tauri/target/release/bu
 Paste the URL and token on first launch. Closing the window hides it to the tray so
 notifications keep arriving; quit from the tray menu.
 
+You get a toast when a job finishes, when it errors, and when the agent asks a question.
+Questions use a distinct sound, since those are the ones holding a run open.
+
 ## Config reference
 
 `~/.cursorremote/config.json` on the work machine:
